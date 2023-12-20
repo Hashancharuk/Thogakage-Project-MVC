@@ -73,6 +73,9 @@ public class ItemFormController {
         colQtyOnHand.setCellValueFactory(new PropertyValueFactory<>("qty"));
         colOption.setCellValueFactory(new PropertyValueFactory<>("btn"));
         loadItemTable();
+        tblItem.getSelectionModel().selectedItemProperty().addListener((observableValue, oldValue, newValue) -> {
+            setData((ItemTm) newValue);
+        });
     }
 
     private void loadItemTable() {
@@ -162,6 +165,15 @@ public class ItemFormController {
             throw new RuntimeException(e);
         }
         stage.show();
+    }
+    private void setData(ItemTm newValue) {
+        if (newValue != null) {
+            txtCode.setEditable(false);
+            txtCode.setText(newValue.getCode());
+            txtDesc.setText(newValue.getDesc());
+            txtUnitPrice.setText(String.valueOf(newValue.getUnitPrice()));
+            txtQty.setText(String.valueOf(newValue.getQty()));
+        }
     }
 }
 

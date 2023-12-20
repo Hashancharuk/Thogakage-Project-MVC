@@ -54,52 +54,43 @@ public class CustomerFormController {
 
     @FXML
     private TableColumn colOption;
-    private CustomerModel customerModel= new CustomerModeImpl();
+    private CustomerModel customerModel = new CustomerModeImpl();
 
-    public void initialize() throws ClassNotFoundException {
+    public void initialize() throws ClassNotFoundException, SQLException {
         colID.setCellValueFactory(new PropertyValueFactory<>("id"));
         colName.setCellValueFactory(new PropertyValueFactory<>("name"));
         colAddress.setCellValueFactory(new PropertyValueFactory<>("address"));
         colSalary.setCellValueFactory(new PropertyValueFactory<>("salary"));
         colOption.setCellValueFactory(new PropertyValueFactory<>("btn"));
         loadCustomerTable();
+        tblCustomer.getSelectionModel().selectedItemProperty().addListener((observableValue, oldValue, newValue) -> {
+            setData((CustomerTm) newValue);
+        });
     }
 
-    private void loadCustomerTable() throws ClassNotFoundException {
+    private void loadCustomerTable() throws SQLException, ClassNotFoundException {
         ObservableList<CustomerTm> tmList = FXCollections.observableArrayList();
-        String sql = "SELECT * FROM customer";
-
-        try {
-            Statement stm = DBConnection.getInstance().getConnection().createStatement();
-            ResultSet result = stm.executeQuery(sql);
-
-            while (result.next()){
-                Button btn = new Button("Delete");
-                CustomerTm c = new CustomerTm(
-                        result.getString(1),
-                        result.getString(2),
-                        result.getString(3),
-                        result.getDouble(4),
-                        btn
-                );
-                btn.setOnAction(actionEvent -> {
-                    deleteCustomer(c.getId());
-                });
-                tmList.add(c);
-            }
-            tblCustomer.setItems(tmList);
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
+        List<CustomerDto> dtoList = customerModel.allCustomer();
+        for (CustomerDto dto : dtoList) {
+            Button btn = new Button("Delete");
+            CustomerTm c = new CustomerTm(
+                    dto.getId(),
+                    dto.getName(),
+                    dto.getAddress(),
+                    dto.getSalary(),
+                    btn
+            );
+            btn.setOnAction(actionEvent -> deleteCustomer(c.getId()));
+            tmList.add(c);
         }
-
+        tblCustomer.setItems(tmList);
     }
+
 
     private void deleteCustomer(String id) {
-        String sql= "delete from customer where id='"+id+"'";
         try {
-            Statement stm = DBConnection.getInstance().getConnection().createStatement();
-            int result = stm.executeUpdate(sql);
-            if (result > 0){
+            boolean isDeleted = customerModel.deleteCustomer(id);
+            if (isDeleted){
                 new Alert(Alert.AlertType.INFORMATION,"Delete Customer").show();
                 loadCustomerTable();
             }else {
@@ -113,24 +104,25 @@ public class CustomerFormController {
     }
 
     @FXML
-    public void reloadButtonOnAction(javafx.event.ActionEvent actionEvent) throws ClassNotFoundException {
+    public void reloadButtonOnAction(javafx.event.ActionEvent actionEvent) throws ClassNotFoundException, SQLException {
         loadCustomerTable();
         tblCustomer.refresh();
         clearFields();
     }
 
-    @FXML
-    public void saveButtonOnAction(javafx.event.ActionEvent actionEvent) {
-        CustomerDto c = new CustomerDto(txtID.getText(),
-                txtName.getText(),
-                txtAddress.getText(),
-                Double.parseDouble(txtSalary.getText()));
-        String sql= "insert into customer values('"+c.getId()+"','"+c.getName()+"','"+c.getAddress()+"',"+c.getSalary()+")";
+
+    public void saveButtonOnAction(ActionEvent actionEvent) throws ClassNotFoundException, SQLException {
         try {
-            Statement stm = DBConnection.getInstance().getConnection().createStatement();
-            int result = stm.executeUpdate(sql);
-            if (result > 0) {
-                new Alert(Alert.AlertType.INFORMATION, "Customer Saved").show();
+            boolean isSaved = customerModel.saveCustomer(
+                    new CustomerDto(txtID.getText(),
+                            txtName.getText(),
+                            txtAddress.getText(),
+                            Double.parseDouble(txtSalary.getText())
+                    ));
+            if (isSaved){
+                new Alert(Alert.AlertType.INFORMATION,"Customer Saved!").show();
+                loadCustomerTable();
+                clearFields();
             }
         } catch (SQLIntegrityConstraintViolationException ex){
             new Alert(Alert.AlertType.ERROR,"Duplicate Entry").show();
@@ -141,15 +133,13 @@ public class CustomerFormController {
 
     @FXML
     void updateButtonOnAction(javafx.event.ActionEvent actionEvent) {
-        CustomerDto c = new CustomerDto(txtID.getText(),
-                txtName.getText(),
-                txtAddress.getText(),
-                Double.parseDouble(txtSalary.getText()));
-        String sql = "UPDATE customer SET name='"+c.getName()+"', address='"+c.getAddress()+"', salary="+c.getSalary()+" WHERE id='"+c.getId()+"'";
         try {
-            Statement stm = DBConnection.getInstance().getConnection().createStatement();
-            int result = stm.executeUpdate(sql);
-            if (result > 0) {
+            boolean isUpdated = customerModel.updateCustomer(new CustomerDto(txtID.getText(),
+                    txtName.getText(),
+                    txtAddress.getText(),
+                    Double.parseDouble(txtSalary.getText())));
+
+            if (isUpdated) {
                 new Alert(Alert.AlertType.INFORMATION, "Customer Saved").show();
                 loadCustomerTable();
                 clearFields();
@@ -172,4 +162,14 @@ public class CustomerFormController {
        Stage stage = (Stage) tblCustomer.getScene().getWindow();
        stage.setScene(new Scene(FXMLLoader.load(getClass().getResource("../view/DashBoardForm.fxml"))));
     }
+    private void setData(CustomerTm newValue) {
+        if (newValue != null) {
+            txtID.setEditable(false);
+            txtID.setText(newValue.getId());
+            txtName.setText(newValue.getName());
+            txtAddress.setText(newValue.getAddress());
+            txtSalary.setText(String.valueOf(newValue.getSalary()));
+        }
+    }
+
 }

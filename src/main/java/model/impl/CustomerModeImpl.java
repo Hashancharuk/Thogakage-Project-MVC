@@ -7,46 +7,82 @@ import model.CustomerModel;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
-public class CustomerModeImpl implements CustomerModel {
+public class  CustomerModeImpl implements CustomerModel {
+
+
+    public boolean saveCustomer(CustomerDto dto) throws SQLException, ClassNotFoundException {
+        String sql = "INSERT INTO customer VALUES(?,?,?,?)";
+        PreparedStatement pstm = DBConnection.getInstance().getConnection().prepareStatement(sql);
+        pstm.setString(1, dto.getId());
+        pstm.setString(2, dto.getName());
+        pstm.setString(3, dto.getAddress());
+        pstm.setDouble(4, dto.getSalary());
+        return pstm.executeUpdate() > 0;
+    }
+
 
     @Override
-    public boolean saveCustomer(CustomerDto dto) {
-        return false;
+    public boolean updateCustomer(CustomerDto dto) throws SQLException, ClassNotFoundException {
+
+        String sql = "UPDATE customer SET name=?,address=?,salary=? where id=?";
+        PreparedStatement pstm = DBConnection.getInstance().getConnection().prepareStatement(sql);
+        pstm.setString(1, dto.getName());
+        pstm.setString(2, dto.getAddress());
+        pstm.setDouble(3, dto.getSalary());
+        pstm.setString(4, dto.getId());
+        return pstm.executeUpdate() > 0;
     }
 
     @Override
-    public boolean updateCustomer(CustomerDto dto) {
-        return false;
-    }
-
-    @Override
-    public boolean deleteCustomer(String id) {
-        return false;
+    public boolean deleteCustomer(String id) throws SQLException, ClassNotFoundException {
+        String sql= "delete from customer where id=?";
+        PreparedStatement pstm = DBConnection.getInstance().getConnection().prepareStatement(sql);
+        pstm.setString(1,id);
+        return pstm.executeUpdate()>0;
     }
 
     @Override
     public List<CustomerDto> allCustomer() throws SQLException, ClassNotFoundException {
-
+        List<CustomerDto> list = new ArrayList<>();
         String sql = "SELECT * FROM customer";
         PreparedStatement pstm = DBConnection.getInstance().getConnection().prepareStatement(sql);
-        pstm.executeQuery();
-        List<CustomerDto> list = null;
-        while (pstm.executeQuery().next()){
-            ResultSet rst = pstm.getResultSet();
+        ResultSet resultSet = pstm.executeQuery();
+        while (resultSet.next()){
             list.add(new CustomerDto(
-                    rst.getString(1),
-                    rst.getString(2),
-                    rst.getString(3),
-                    rst.getDouble(4)
+                    resultSet.getString(1),
+                    resultSet.getString(2),
+                    resultSet.getString(3),
+                    resultSet.getDouble(4)
             ));
         }
         return list;
     }
 
     @Override
-    public CustomerDto searchCustomer(String id) {
+    public CustomerDto searchCustomer(String id) throws SQLException, ClassNotFoundException {
+        List<CustomerDto> list = new ArrayList<>();
+        String sql = "SELECT * FROM customer";
+        PreparedStatement pstm = DBConnection.getInstance().getConnection().prepareStatement(sql);
+        ResultSet resultSet = pstm.executeQuery();
+        while (resultSet.next()){
+
+            list.add(new CustomerDto(
+                    resultSet.getString(1),
+                    resultSet.getString(2),
+                    resultSet.getString(3),
+                    resultSet.getDouble(4)
+            ));
+        }
         return null;
     }
+
+    @Override
+    public List<CustomerDto> allCustomers() throws SQLException, ClassNotFoundException {
+        return null;
+    }
+
+
 }
